@@ -2,23 +2,21 @@ package main
 
 import (
 	"fmt"
-	loggo "github.com/juju/loggo"
-	"log"
-	"os"
+	"skillbox/logs/arr"
 )
 
 func main() {
-	file, err := os.OpenFile("test.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalf("Error while opening file %v\n", err)
-	}
+	//19.4-1. Слияние отсортированных массивов
+	a := [...]int{-8, 5, 5, 8}
+	b := [...]int{0, 4, 5, 6, 9}
+	fmt.Println("First sorted array", a)
+	fmt.Println("Second sorted array", b)
+	fmt.Println("Merged array:", arr.MergeSortedArrays(a, b))
 
-	log.SetOutput(file)
+	fmt.Println("****************")
 
-	for i := 0; i < 10; i++ {
-		log.Println("Rrunning...")
-		loggo.LoggerInfo()
-	}
-	a := loggo.INFO
-	fmt.Println(a)
+	//19.4-2. Сортировка пузырьком
+	array := [...]int{6, 6, 0, 2, 6, -11}
+	fmt.Println("Unsorted array", array)
+	fmt.Println("Sorted array:", arr.BubbleSort(array))
 }
