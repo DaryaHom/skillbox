@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	loggo "github.com/juju/loggo"
 	"log"
 	"os"
@@ -18,4 +19,6 @@ func main() {
 		log.Println("Rrunning...")
 		loggo.LoggerInfo()
 	}
+	a := loggo.INFO
+	fmt.Println(a)
 }
