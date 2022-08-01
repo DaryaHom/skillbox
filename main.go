@@ -6,17 +6,33 @@ import (
 )
 
 func main() {
-	//19.4-1. Слияние отсортированных массивов
-	a := [...]int{-8, 5, 5, 8}
-	b := [...]int{0, 4, 5, 6, 9}
-	fmt.Println("First sorted array", a)
-	fmt.Println("Second sorted array", b)
-	fmt.Println("Merged array:", arr.MergeSortedArrays(a, b))
 
-	fmt.Println("****************")
+	//1. Подсчёт определителя
+	m := [3][3]int{
+		{1, 2, 3},
+		{4, 5, 6},
+		{7, 8, 9},
+	}
+	fmt.Println("Determinant of a third order:", arr.ThirdOrderDeterminant(m))
 
-	//19.4-2. Сортировка пузырьком
-	array := [...]int{6, 6, 0, 2, 6, -11}
-	fmt.Println("Unsorted array", array)
-	fmt.Println("Sorted array:", arr.BubbleSort(array))
+	fmt.Println("******")
+
+	//2. Умножение матриц
+	x := [3][5]int{
+		{-1, 4, 11, 2, 3},
+		{8, 6, 0, 1, 10},
+		{15, -7, 32, 5, -2},
+	}
+
+	y := [5][4]int{
+		{1, 2, 3, 4},
+		{5, 6, 7, 8},
+		{9, 10, 11, 12},
+		{13, 14, 15, 16},
+		{17, 18, 19, 20},
+	}
+	fmt.Println("Result matrix:")
+	for _, v := range arr.Multiple(x, y) {
+		fmt.Println(v)
+	}
 }
