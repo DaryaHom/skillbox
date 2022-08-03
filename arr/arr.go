@@ -1,6 +1,13 @@
 package arr
 
 //ThirdOrderDeterminant - вычисляет определитель матрицы размером 3×3
+//Код для проверки:
+//m := [3][3]int{
+//{1, 2, 3},
+//{4, 5, 6},
+//{7, 8, 9},
+//}
+//fmt.Println("Determinant of a third order:", arr.ThirdOrderDeterminant(m))
 func ThirdOrderDeterminant(matrix [3][3]int) int {
 	a := matrix[0][0] * matrix[1][1] * matrix[2][2]
 	b := matrix[0][0] * matrix[1][2] * matrix[2][1]
@@ -13,6 +20,23 @@ func ThirdOrderDeterminant(matrix [3][3]int) int {
 }
 
 // Multiple - умножает две матрицы размерами 3×5 и 5×4
+//Код для проверки:
+//  x := [3][5]int{
+//		{-1, 4, 11, 2, 3},
+//		{8, 6, 0, 1, 10},
+//		{15, -7, 32, 5, -2},
+//	}
+//	y := [5][4]int{
+//		{1, 2, 3, 4},
+//		{5, 6, 7, 8},
+//		{9, 10, 11, 12},
+//		{13, 14, 15, 16},
+//		{17, 18, 19, 20},
+//	}
+//	fmt.Println("Result matrix:")
+//	for _, v := range arr.Multiple(x, y) {
+//		fmt.Println(v)
+//	}
 func Multiple(m1 [3][5]int, m2 [5][4]int) (result [3][4]int) {
 	for i := 0; i < len(m1); i++ {
 		for j := 0; j < len(m2[j]); j++ {
