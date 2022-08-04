@@ -1,4 +1,4 @@
-module skillbox/logs
+module skillbox/21_anonymous_func/fn
 
 go 1.18
 

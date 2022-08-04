@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
-	"skillbox/logs/fn"
+	"skillbox/21_anonymous_func/fn/fn"
 )
 
 func main() {
