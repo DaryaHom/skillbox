@@ -26,7 +26,10 @@ func main() {
 				}
 			}
 		}
+		for i := 0; i < len(array)/2; i++ {
+			array[i], array[len(array)-1-i] = array[len(array)-1-i], array[i]
+		}
 		return array
 	}
-	fmt.Println("Bubble sorted array:", f(array))
+	fmt.Println("Bubble sorted & reversed array:", f(array))
 }
