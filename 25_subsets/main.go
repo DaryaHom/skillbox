@@ -6,12 +6,12 @@ import (
 )
 
 func main() {
-	//looking for a substring in a string using runes array
+	//looking for a substring in a string (using runes array)
 	var str string
 	var substr string
 
-	flag.StringVar(&str, "str", "empty string", "set string")
-	flag.StringVar(&substr, "substr", "empty substring", "set substring")
+	flag.StringVar(&str, "str", "Программирование - это просто!", "set string")
+	flag.StringVar(&substr, "substr", "мир", "set substring")
 	flag.Parse()
 	fmt.Println("First string:", str)
 	fmt.Println("Second string:", substr)
@@ -43,18 +43,25 @@ func main() {
 	fmt.Println("Second string is a substring of first:", result)
 }
 
-func subSearch(substrRunes []rune, strRunes []rune, i, j int, isSubstr bool) bool {
-	for ; i < len(substrRunes); i++ {
-		for ; j < len(strRunes); j++ {
-			if substrRunes[i] == strRunes[j] {
+func subSearch(substring []rune, string []rune, i, j int, isSubstring bool) bool {
+	if len(substring[i:]) > len(string[j:]) {
+		return false
+	}
+	for ; i < len(substring); i++ {
+		for ; j < len(string); j++ {
+			if substring[i] == string[j] {
 				i, j = i+1, j+1
-				isSubstr = true
-				return subSearch(substrRunes, strRunes, i, j, isSubstr)
+				isSubstring = true
+				return subSearch(substring, string, i, j, isSubstring)
 			} else {
-				isSubstr = false
-				continue
+				isSubstring = false
+				if i == 0 {
+					continue
+				} else {
+					return subSearch(substring, string, 0, j, isSubstring)
+				}
 			}
 		}
 	}
-	return isSubstr
+	return isSubstring
 }
