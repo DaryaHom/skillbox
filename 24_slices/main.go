@@ -13,23 +13,22 @@ func main() {
 
 	fmt.Println("**********")
 	//2. Анонимные функции
-	array = [10]int{10, 2, 10, 3, 1, 2, 5, 8, 4}
-	fmt.Println("Unsorted array:", array)
-	f := func(array [10]int) [10]int {
+	f := func(slice ...int) []int {
+		fmt.Println("Unsorted slice:", slice)
 		var isArraySorted bool
 		for !isArraySorted {
 			isArraySorted = true
-			for i := 1; i < len(array); i++ {
-				if array[i-1] > array[i] {
-					array[i-1], array[i] = array[i], array[i-1]
+			for i := 1; i < len(slice); i++ {
+				if slice[i-1] > slice[i] {
+					slice[i-1], slice[i] = slice[i], slice[i-1]
 					isArraySorted = false
 				}
 			}
 		}
-		for i := 0; i < len(array)/2; i++ {
-			array[i], array[len(array)-1-i] = array[len(array)-1-i], array[i]
+		for i := 0; i < len(slice)/2; i++ {
+			slice[i], slice[len(slice)-1-i] = slice[len(slice)-1-i], slice[i]
 		}
-		return array
-	}
-	fmt.Println("Bubble sorted & reversed array:", f(array))
+		return slice
+	}(10, 2, 10, 3, 1, 2, 5, 8, 4)
+	fmt.Println("Bubble sorted & reversed array:", f)
 }
