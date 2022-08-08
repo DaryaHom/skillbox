@@ -14,7 +14,7 @@ func main() {
 	fmt.Println("**********")
 	//2. Анонимные функции
 	f := func(slice ...int) []int {
-		fmt.Println("Unsorted slice:", slice)
+		fmt.Println("Unsorted array:", slice)
 		var isArraySorted bool
 		for !isArraySorted {
 			isArraySorted = true
