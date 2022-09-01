@@ -1,0 +1,117 @@
+
+//Get a hello
+GET http://localhost:8080/
+Accept: application/json
+
+###
+
+//Create new user Emma (32)
+POST http://localhost:8080/create
+Content-Type: application/json
+
+{
+"name": "Emma",
+"age": "32"
+}
+
+###
+
+//Create new user Maria (18)
+POST http://localhost:8080/create
+Content-Type: application/json
+
+{
+  "name": "Maria",
+  "age": "18",
+  "friends": []
+}
+
+###
+
+//Create new user Ivan (26)
+POST http://localhost:8080/create
+Content-Type: application/json
+
+{
+  "name": "Ivan",
+  "age": "26"
+}
+
+###
+
+//Create new user Michel (21)
+POST http://localhost:8080/create
+Content-Type: application/json
+
+{
+  "name": "Michel",
+  "age": "21"
+}
+
+###
+
+//Ìake friends (Emma & Maria)
+POST http://localhost:8080/make_friends
+Content-Type: application/json
+
+{"source_id": "0","target_id": "1"}
+
+###
+
+//Ìake friends (Emma & Ivan)
+POST http://localhost:8080/make_friends
+Content-Type: application/json
+
+{"source_id": "0","target_id": "2"}
+
+###
+
+//Ìake friends (Maria & Ivan)
+POST http://localhost:8080/make_friends
+Content-Type: application/json
+
+{"source_id": "1","target_id": "2"}
+
+###
+
+//Ìake friends (Maria & Michel)
+POST http://localhost:8080/make_friends
+Content-Type: application/json
+
+{"source_id": "1","target_id": "3"}
+
+###
+
+//Ìake friends (Ivan & Michel)
+POST http://localhost:8080/make_friends
+Content-Type: application/json
+
+{"source_id": "2","target_id": "3"}
+
+###
+
+//Change user's age
+PUT http://localhost:8080/1
+Content-Type: application/json
+
+{"new age": "28"}
+
+###
+
+//Show friends of user 1 (Maria)
+GET http://localhost:8080/friends/1
+Accept: application/json
+
+###
+
+//Delete user
+DELETE http://localhost:8080/user
+Content-Type: application/json
+
+{"target_id": "1"}
+
+###
+
+//Get all users
+GET http://localhost:8080/getAll
+Accept: application/json
