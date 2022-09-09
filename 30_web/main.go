@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/go-chi/chi"
 	"log"
 	"net/http"
-	"network_communication/pkg/handler"
+	"network_communication/internal/handler"
 	"network_communication/pkg/storage"
+
+	"github.com/go-chi/chi"
 )
 
 func main() {
