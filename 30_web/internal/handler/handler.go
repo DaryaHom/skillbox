@@ -3,12 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/go-chi/chi"
 	"io"
 	"log"
 	"net/http"
 	"network_communication/pkg/storage"
 	"strconv"
+
+	"github.com/go-chi/chi"
 )
 
 //Get - a hello function
@@ -56,7 +57,7 @@ func CreateUser(s *storage.Storage) http.HandlerFunc {
 	}
 }
 
-//MakeFriends - reads user's id from request & put in to the slice of friend's id for each of two users
+//MakeFriends - reads user's id from req & put in to the slice of friend's id for each of two users
 func MakeFriends(s *storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request := map[string]string{}
@@ -82,7 +83,7 @@ func MakeFriends(s *storage.Storage) http.HandlerFunc {
 	}
 }
 
-//DeleteUser - reads user's id from request & delete user from friends lists and from the store
+//DeleteUser - reads user's id from req & delete user from friends lists and from the store
 func DeleteUser(s *storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request := map[string]string{}
@@ -105,7 +106,7 @@ func DeleteUser(s *storage.Storage) http.HandlerFunc {
 	}
 }
 
-//GetAllFriends - returns a list of friends of the user with id specified in request
+//GetAllFriends - returns a list of friends of the user with id specified in req
 func GetAllFriends(s *storage.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		val := chi.URLParam(r, "user_id")

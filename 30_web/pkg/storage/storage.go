@@ -44,7 +44,7 @@ func (s *Storage) GetFriendsID(id int) []int {
 	return friendsID
 }
 
-//DeleteFromFriends - returns a list of friends of the user with the specified id
+//DeleteFromFriends - removes the user with the specified id from the friend lists of other users in storage
 func (s *Storage) DeleteFromFriends(id int) {
 	for userID, user := range s.store {
 		if userID != id {
