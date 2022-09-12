@@ -1,0 +1,111 @@
+
+//Get a hello
+GET http://localhost:9000/
+Accept: text/plain
+
+###
+
+//Example POST
+POST http://localhost:9000/create
+Content-Type: application/json
+
+{
+  "name": "Emma",
+  "age": "32"
+}
+
+###
+
+//Create new user Maria (18)
+POST http://localhost:9000/create
+Content-Type: application/json
+
+{
+  "name": "Maria",
+  "age": "18",
+  "friends": []
+}
+
+###
+
+//Create new user Ivan (26)
+POST http://localhost:9000/create
+Content-Type: application/json
+
+{
+  "name": "Ivan",
+  "age": "26"
+}
+
+###
+
+//Create new user Michel (21)
+POST http://localhost:9000/create
+Content-Type: application/json
+
+{
+  "name": "Michel",
+  "age": "21"
+}
+
+###
+
+//Ìake friends (Emma & Maria)
+POST http://localhost:9000/make_friends
+Content-Type: application/json
+
+{"source_id": "1","target_id": "2"}
+
+###
+
+//Ìake friends (Emma & Ivan)
+POST http://localhost:9000/make_friends
+Content-Type: application/json
+
+{"source_id": "1","target_id": "3"}
+
+###
+
+//Ìake friends (Maria & Ivan)
+POST http://localhost:9000/make_friends
+Content-Type: application/json
+
+{"source_id": "2","target_id": "3"}
+
+###
+
+//Ìake friends (Maria & Michel)
+POST http://localhost:9000/make_friends
+Content-Type: application/json
+
+{"source_id": "2","target_id": "4"}
+
+###
+
+//Ìake friends (Ivan & Michel)
+POST http://localhost:9000/make_friends
+Content-Type: application/json
+
+{"source_id": "3","target_id": "4"}
+
+###
+
+//Change user's age
+PUT http://localhost:9000/2
+Content-Type: application/json
+
+{"new age": "16"}
+
+###
+
+//Show friends of user 1 (Emma)
+GET http://localhost:9000/friends/1
+Accept: application/json
+
+###
+
+//Delete user
+DELETE http://localhost:9000/user
+Content-Type: application/json
+
+{"target_id": "1"}
