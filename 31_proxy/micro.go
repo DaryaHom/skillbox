@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"log"
 	"net/http"
 	"proxy/internal/handler"
@@ -10,22 +11,29 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var port = flag.String("port", ":8080", "port to listen on")
+
+func init() {
+	flag.Parse()
+}
+
 func main() {
-	port := ":8081"
+	flag.Parse()
 	r := chi.NewRouter()
 
 	db, err := sql.Open("sqlite3", "store.db")
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	defer func(db *sql.DB) {
 		err := db.Close()
 		if err != nil {
-			log.Fatalln(err)
+			log.Fatalln()
 		}
 	}(db)
 
-	log.Println("Starting server 2")
+	log.Println("Starting server 1")
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/", handler.Get())
@@ -39,6 +47,6 @@ func main() {
 		r.Get("/{user_id}", handler.GetAllFriends(db))
 	})
 
-	log.Println("Serving on" + port)
-	log.Fatal(http.ListenAndServe(port, r))
+	log.Println("Serving on " + *port)
+	log.Fatal(http.ListenAndServe(*port, r))
 }
