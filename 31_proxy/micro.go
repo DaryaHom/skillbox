@@ -18,7 +18,6 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
 	r := chi.NewRouter()
 
 	db, err := sql.Open("sqlite3", "store.db")
