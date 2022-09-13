@@ -38,6 +38,7 @@ func main() {
 		r.Get("/", handler.Get())
 		r.Put("/{user_id}", handler.UpdateAge(db))
 	})
+
 	r.Post("/create", handler.CreateUser(db))
 	r.Post("/make_friends", handler.MakeFriends(db))
 	r.Delete("/user", handler.DeleteUser(db))
