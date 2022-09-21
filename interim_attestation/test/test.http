@@ -1,0 +1,71 @@
+
+//Get a hello
+GET http://localhost:8080/
+Accept: text/plain
+
+###
+
+//Get city information by id
+GET http://localhost:8080/city/121
+Accept: application/json
+
+###
+
+//Create new city using port 8080
+POST http://localhost:8080/create
+Content-Type: application/json
+
+{
+  "id" : 4942,
+  "name": "Кострома",
+  "region": "Костромская область",
+  "district": "Центральный",
+  "population": 277021,
+  "foundation": 1152
+}
+
+###
+
+//Change city population
+PUT http://localhost:8080/update/4942
+Content-Type: application/json
+
+{"new population": 400000}
+
+###
+
+//Get all cities in the region
+GET http://localhost:8080/region/Костромская область
+Accept: application/json
+
+###
+
+//Get all cities in the region
+GET http://localhost:8080/region/Татарстан
+Accept: application/json
+
+###
+
+//Get all cities in the district
+GET http://localhost:8080/district/Приволжский
+Accept: application/json
+
+###
+
+//Get all cities over specified population range
+GET http://localhost:8080/population/800000-1000000
+Accept: application/json
+
+###
+
+//Get all cities over specified foundation range
+GET http://localhost:8080/foundation/1400
+Accept: application/json
+
+###
+
+//Delete city by id
+DELETE http://localhost:8080/
+Content-Type: application/json
+
+{"target_id": "4942"}
