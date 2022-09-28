@@ -3,8 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"interim_attestation/internal/city"
 	"interim_attestation/internal/req"
-	"interim_attestation/internal/storage"
 	"math"
 	"net/http"
 	"strconv"
@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/gomodule/redigo/redis"
 )
 
 // Get - a hello function
@@ -25,41 +26,34 @@ func Get() http.HandlerFunc {
 }
 
 // GetCity - returns information about the city by its id
-func GetCity(s *storage.Storage) http.HandlerFunc {
+func GetCity(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		val := chi.URLParam(r, "id")
-		id, err := strconv.Atoi(val)
+		id := chi.URLParam(r, "id")
+		res, err := city.GetInfo(conn, id)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
 		}
-		res, err := s.GetCityInfo(id)
-		if err != nil {
-			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
-			return
-		}
-		req.WriteOkResponse(w, res)
+
+		req.WriteOkResponse(w, []byte(fmt.Sprintf("%v", *res)))
 	}
 }
 
 //CreateCity - creates new city in storage & fill it with request info
-func CreateCity(s *storage.Storage) http.HandlerFunc {
+func CreateCity(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		request := map[string]interface{}{}
 
-		// Decoding JSON fields to the map
+		// Decode JSON fields to the map
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
 		}
 		defer req.CloseRequestBody(r.Body)
 
-		// Casting values to the types corresponding to the fields of the city-structure
-		id, err := strconv.Atoi(fmt.Sprintf("%v", request["id"]))
-		if err != nil {
-			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
-			return
-		}
+		// Caste values to the types corresponding to the fields of the city-structure
+		id := fmt.Sprintf("%v", request["id"])
 		name := fmt.Sprintf("%v", request["name"])
 		region := fmt.Sprintf("%v", request["region"])
 		district := fmt.Sprintf("%v", request["district"])
@@ -74,24 +68,25 @@ func CreateCity(s *storage.Storage) http.HandlerFunc {
 			return
 		}
 
-		// New structure with received values
-		s.CreateCity(id, name, region, district, population, foundation)
+		// Create new structure with received values
+		err = city.CreateCity(conn, id, name, region, district, population, foundation)
+		if err != nil {
+			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
+			return
+		}
 		response := []byte(fmt.Sprintf("New city %s is created\n", name))
 		req.WriteCreateResponse(w, response)
 	}
 }
 
-//UpdatePopulation - updates city population in the storage
-func UpdatePopulation(s *storage.Storage) http.HandlerFunc {
+//UpdatePopulation - updates city population in the database
+func UpdatePopulation(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		val := chi.URLParam(r, "id")
 		if val != "" {
-			id, err := strconv.Atoi(val)
-			if err != nil {
-				req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
-				return
-			}
+			id := val
 
+			// Decode JSON fields to the map
 			request := map[string]interface{}{}
 			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 				req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
@@ -105,8 +100,13 @@ func UpdatePopulation(s *storage.Storage) http.HandlerFunc {
 				return
 			}
 
-			s.UpdatePopulation(id, population)
-			response := []byte(fmt.Sprintf("Population of city %d has been updated to %d\n", id, population))
+			// Update the field 'population' with new value
+			err = city.UpdatePopulation(conn, id, population)
+			if err != nil {
+				req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
+				return
+			}
+			response := []byte(fmt.Sprintf("Population of city %s has been updated to %d\n", id, population))
 			req.WriteOkResponse(w, response)
 			return
 		}
@@ -114,26 +114,36 @@ func UpdatePopulation(s *storage.Storage) http.HandlerFunc {
 	}
 }
 
-// GetByRegion - returns list of all cities in the region
-func GetByRegion(s *storage.Storage) http.HandlerFunc {
+// GetByRegion - returns a list of all cities in the region
+func GetByRegion(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-		res := []byte(fmt.Sprintf("%v", s.GetByRegion(name)))
+		regionName := chi.URLParam(r, "name")
+		cities, err := city.GetByRegion(conn, regionName)
+		if err != nil {
+			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
+			return
+		}
+		res := []byte(fmt.Sprintf("%v", cities))
 		req.WriteOkResponse(w, res)
 	}
 }
 
-// GetByDistrict - returns list of all cities in the district
-func GetByDistrict(s *storage.Storage) http.HandlerFunc {
+// GetByDistrict - returns a list of all cities in the district
+func GetByDistrict(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		name := chi.URLParam(r, "name")
-		res := []byte(fmt.Sprintf("%v", s.GetByDistrict(name)))
+		districtName := chi.URLParam(r, "name")
+		cities, err := city.GetByDistrict(conn, districtName)
+		if err != nil {
+			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
+			return
+		}
+		res := []byte(fmt.Sprintf("%v", cities))
 		req.WriteOkResponse(w, res)
 	}
 }
 
-// GetByPopulation - returns list of all cities with the specified population range
-func GetByPopulation(s *storage.Storage) http.HandlerFunc {
+// GetByPopulation - returns a list of all cities with the specified population range
+func GetByPopulation(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := strings.Split(chi.URLParam(r, "range"), "-")
 
@@ -157,13 +167,19 @@ func GetByPopulation(s *storage.Storage) http.HandlerFunc {
 				return
 			}
 		}
-		res := []byte(fmt.Sprintf("%v", s.GetByPopulation(minVal, maxVal)))
+
+		cities, err := city.GetByPopulation(conn, minVal, maxVal)
+		if err != nil {
+			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
+			return
+		}
+		res := []byte(fmt.Sprintf("%v", cities))
 		req.WriteOkResponse(w, res)
 	}
 }
 
-// GetByFoundation - returns list of all cities with the specified foundation range
-func GetByFoundation(s *storage.Storage) http.HandlerFunc {
+// GetByFoundation - returns a list of all cities with the specified foundation range
+func GetByFoundation(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := strings.Split(chi.URLParam(r, "range"), "-")
 
@@ -188,13 +204,18 @@ func GetByFoundation(s *storage.Storage) http.HandlerFunc {
 			}
 		}
 
-		res := []byte(fmt.Sprintf("%v", s.GetByFoundation(minVal, maxVal)))
+		cities, err := city.GetByFoundation(conn, minVal, maxVal)
+		if err != nil {
+			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
+			return
+		}
+		res := []byte(fmt.Sprintf("%v", cities))
 		req.WriteOkResponse(w, res)
 	}
 }
 
-// DeleteCity - removes city with the specified id from the storage
-func DeleteCity(s *storage.Storage) http.HandlerFunc {
+// DeleteCity - removes city with the specified id from Redis
+func DeleteCity(conn redis.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request := map[string]string{}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -203,14 +224,14 @@ func DeleteCity(s *storage.Storage) http.HandlerFunc {
 		}
 		defer req.CloseRequestBody(r.Body)
 
-		id, err := strconv.Atoi(request["target_id"])
+		id := request["target_id"]
+
+		err := city.DeleteCity(conn, id)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
 		}
-
-		s.DeleteCity(id)
-		response := []byte(fmt.Sprintf("City %d is deleted\n", id))
+		response := []byte(fmt.Sprintf("City %s is deleted\n", id))
 		req.WriteOkResponse(w, response)
 	}
 }

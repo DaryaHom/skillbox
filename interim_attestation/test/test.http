@@ -6,7 +6,7 @@ Accept: text/plain
 ###
 
 //Get city information by id
-GET http://localhost:8080/city/121
+GET http://localhost:8080/city/606
 Accept: application/json
 
 ###
@@ -16,12 +16,27 @@ POST http://localhost:8080/create
 Content-Type: application/json
 
 {
-  "id" : 4942,
+  "id" : "4942",
   "name": "Кострома",
   "region": "Костромская область",
   "district": "Центральный",
-  "population": 277021,
+  "population": 277000,
   "foundation": 1152
+}
+
+###
+
+//Create new city using port 8081
+POST http://localhost:8081/create
+Content-Type: application/json
+
+{
+  "id" : "4932",
+  "name": "Иваново",
+  "region": "Ивановская область",
+  "district": "Центральный",
+  "population": 45,
+  "foundation": 1871
 }
 
 ###
@@ -30,12 +45,20 @@ Content-Type: application/json
 PUT http://localhost:8080/update/4942
 Content-Type: application/json
 
-{"new population": 400000}
+{"new population": 277022}
+
+###
+
+//Change city population
+PUT http://localhost:8080/update/4932
+Content-Type: application/json
+
+{"new population": 399983}
 
 ###
 
 //Get all cities in the region
-GET http://localhost:8080/region/Костромская область
+GET http://localhost:8081/region/Костромская область
 Accept: application/json
 
 ###
@@ -59,7 +82,7 @@ Accept: application/json
 ###
 
 //Get all cities over specified foundation range
-GET http://localhost:8080/foundation/1400
+GET http://localhost:8080/foundation/1800
 Accept: application/json
 
 ###
