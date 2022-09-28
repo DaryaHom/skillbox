@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/csv"
 	"flag"
+	"interim_attestation/internal/city"
 	"interim_attestation/internal/handler"
-	"interim_attestation/internal/storage"
 	"log"
 	"net/http"
 	"os"
@@ -15,12 +15,13 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/gomodule/redigo/redis"
 )
 
 var (
-	port     = flag.String("port", ":8080", "port to listen on")
+	port     = flag.String("port", ":8080", "Port to listen on")
+	addr     = flag.String("server", ":6379", "Redis server address")
 	fileName = "cities.csv"
-	s        = storage.NewStorage()
 )
 
 func init() {
@@ -28,23 +29,33 @@ func init() {
 }
 
 func main() {
-	// Opening file
+	log.Println("Starting app")
+
+	// Redis connection
+	conn, err := redis.Dial("tcp", *addr)
+	defer func() {
+		err = conn.Close()
+		if err != nil {
+			log.Fatalf("Failed to communicate to redis-server @ %v\n", err)
+		}
+	}()
+
+	// Open file
 	file, err := os.OpenFile(fileName, os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer CloseFile(file)
 
+	// Read data from cvs-file to Redis
 	reader := csv.NewReader(file)
-	err = s.ReadCitiesInfo(reader)
+	err = city.ReadInfo(conn, reader)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	log.Println("Starting app")
-
 	// The HTTP Server
-	server := &http.Server{Addr: *port, Handler: service()}
+	server := &http.Server{Addr: *port, Handler: service(conn)}
 
 	// Server run context
 	ctx, cancelCtx := context.WithCancel(context.Background())
@@ -58,7 +69,9 @@ func main() {
 		// Shutdown signal with grace period of 30 seconds
 		shutdownCtx, _ := context.WithTimeout(ctx, 30*time.Second)
 		log.Println("Interrupt signal received")
-		WriteChanges(s, file)
+
+		// Write data from Redis back to cvs-file
+		WriteChanges(conn, file)
 
 		go func() {
 			<-shutdownCtx.Done()
@@ -88,7 +101,7 @@ func main() {
 	<-ctx.Done()
 }
 
-func service() http.Handler {
+func service(conn redis.Conn) http.Handler {
 	log.Println("Starting server")
 	r := chi.NewRouter()
 
@@ -96,34 +109,35 @@ func service() http.Handler {
 	r.Use(middleware.Logger)
 
 	r.Get("/", handler.Get())
+
 	r.Route("/city", func(r chi.Router) {
-		r.Get("/{id}", handler.GetCity(s))
+		r.Get("/{id}", handler.GetCity(conn))
 	})
 
 	r.Route("/region", func(r chi.Router) {
-		r.Get("/{name}", handler.GetByRegion(s))
+		r.Get("/{name}", handler.GetByRegion(conn))
 	})
 
 	r.Route("/district", func(r chi.Router) {
-		r.Get("/{name}", handler.GetByDistrict(s))
+		r.Get("/{name}", handler.GetByDistrict(conn))
 	})
 
 	//the range parameter must contain 2 numbers separated by "-", for example "/100-3000"
 	r.Route("/population", func(r chi.Router) {
-		r.Get("/{range}", handler.GetByPopulation(s))
+		r.Get("/{range}", handler.GetByPopulation(conn))
 	})
 
 	//the range parameter must contain 2 numbers separated by "-", for example "/1480-1918"
 	r.Route("/foundation", func(r chi.Router) {
-		r.Get("/{range}", handler.GetByFoundation(s))
+		r.Get("/{range}", handler.GetByFoundation(conn))
 	})
 
-	r.Post("/create", handler.CreateCity(s))
+	r.Post("/create", handler.CreateCity(conn))
 	r.Route("/update", func(r chi.Router) {
-		r.Put("/{id}", handler.UpdatePopulation(s))
+		r.Put("/{id}", handler.UpdatePopulation(conn))
 	})
 
-	r.Delete("/", handler.DeleteCity(s))
+	r.Delete("/", handler.DeleteCity(conn))
 
 	return r
 }
@@ -136,9 +150,9 @@ func CloseFile(file *os.File) {
 	}
 }
 
-func WriteChanges(s *storage.Storage, file *os.File) {
+func WriteChanges(conn redis.Conn, file *os.File) {
 	log.Println("Writing changes to the file")
-	err := s.WriteCitiesInfo(file)
+	err := city.WriteInfo(conn, file)
 	if err != nil {
 		log.Fatalln(err)
 	}

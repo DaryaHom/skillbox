@@ -3,32 +3,32 @@ package city
 import (
 	"encoding/csv"
 	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"sync"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/jszwec/csvutil"
 )
 
 type City struct {
-	ID         int    `csv`
-	Name       string `csv:`
-	Region     string `csv:`
-	District   string `csv:`
-	Population int    `csv:`
-	Foundation int    `csv:`
+	ID         string `redis:"id"`
+	Name       string `redis:"name"`
+	Region     string `redis:"region"`
+	District   string `redis:"district"`
+	Population int    `redis:"population"`
+	Foundation int    `redis:"foundation"`
 }
 
 func NewCity() *City {
 	return &City{}
 }
 
-func (c *City) Id() int {
+func (c *City) Id() string {
 	return c.ID
 }
 
-func (c *City) SetID(id int) {
+func (c *City) SetID(id string) {
 	c.ID = id
 }
 
@@ -72,6 +72,71 @@ func (c *City) SetFoundation(foundation int) {
 	c.Foundation = foundation
 }
 
+// CreateCity - create a new key in Redis and writes the passed values,
+// or overwrites them if the key already exists
+func CreateCity(conn redis.Conn, id string, name string, region string, district string, population int, foundation int) error {
+	_, err := conn.Do(
+		"HMSET",
+		id,
+		"id",
+		id,
+		"name",
+		name,
+		"region",
+		region,
+		"district",
+		district,
+		"population",
+		population,
+		"foundation",
+		foundation,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ReadInfo - reads csv-file to the Redis data store
+func ReadInfo(conn redis.Conn, reader *csv.Reader) error {
+	// Check if there is data in Redis
+	keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return err
+	}
+
+	// If there is data, stop reading so as not to lose the changes made by another service
+	if len(keys) > 0 {
+		return nil
+	}
+
+	// Create header for file without it
+	header, err := csvutil.Header(NewCity(), "csv")
+	if err != nil {
+		return err
+	}
+
+	dec, err := csvutil.NewDecoder(reader, header...)
+	if err != nil {
+		return err
+	}
+
+	// Decode line to the city-structure & add structure fields to Redis
+	for {
+		var c *City
+		if err = dec.Decode(&c); err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+		err = CreateCity(conn, c.ID, c.Name, c.Region, c.District, c.Population, c.Foundation)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c *City) GetInfo() ([]byte, error) {
 	res, err := json.Marshal(c)
 	if err != nil {
@@ -80,53 +145,180 @@ func (c *City) GetInfo() ([]byte, error) {
 	return res, nil
 }
 
-// ReadInfo - reads csv-file to the array of city-structures
-func ReadInfo(reader *csv.Reader) ([]*City, error) {
+//GetInfo - returns from Redis info about city by id
+func GetInfo(conn redis.Conn, id string) (*City, error) {
+	var city City
 
-	// Creating header for file without it
-	userHeader, err := csvutil.Header(NewCity(), "csv")
+	// Get all fields of a key that is equal to id
+	reply, err := redis.Values(conn.Do("HGETALL", id))
 	if err != nil {
-		return nil, err
+		return &city, err
 	}
 
-	dec, err := csvutil.NewDecoder(reader, userHeader...)
+	// Scan info from reply to the new City struct
+	err = redis.ScanStruct(reply, &city)
 	if err != nil {
-		return nil, err
+		return &city, err
 	}
 
-	// Decoding line to the structure & appending to the array
-	var cities []*City
-	for {
-		var c *City
-		if err := dec.Decode(&c); err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
+	return &city, nil
+}
+
+// GetByRegion - returns from Redis info about cities by region
+func GetByRegion(conn redis.Conn, regionName string) ([]string, error) {
+	var cities []string
+
+	// Get a list of keys from Redis
+	keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return cities, err
+	}
+
+	// For each key, check if the region name matches the received name.
+	// If the region name matches, get the city name & add it to returned slice
+	for _, key := range keys {
+		region, err := redis.String(conn.Do("HGET", key, "region"))
+		if err != nil {
+			return cities, err
 		}
-		cities = append(cities, c)
+		if region == regionName {
+			city, err := redis.String(conn.Do("HGET", key, "name"))
+			if err != nil {
+				return cities, err
+			}
+			cities = append(cities, city)
+		}
 	}
 	return cities, nil
 }
 
-// WriteInfo - reads lines from an array and overwrites them to the file
-func WriteInfo(file *os.File, c []City) error {
+// GetByDistrict - returns from Redis info about cities by district
+func GetByDistrict(conn redis.Conn, districtName string) ([]string, error) {
+	var cities []string
+
+	// Get a list of keys from Redis
+	keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return cities, err
+	}
+
+	// For each key, check if the district name matches the received name.
+	// If the district name matches, get the city name & add it to returned slice
+	for _, key := range keys {
+		district, err := redis.String(conn.Do("HGET", key, "district"))
+		if err != nil {
+			return cities, err
+		}
+		if district == districtName {
+			city, err := redis.String(conn.Do("HGET", key, "name"))
+			if err != nil {
+				return cities, err
+			}
+			cities = append(cities, city)
+		}
+	}
+	return cities, nil
+}
+
+// GetByPopulation - returns from Redis a list of names of all cities with the specified population range
+func GetByPopulation(conn redis.Conn, minVal, maxVal int) ([]string, error) {
+	var cities []string
+
+	// Get a list of keys from Redis
+	keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return cities, err
+	}
+
+	// For each key, check if the population is in the specified range.
+	// If the population is in the range, get the city name & add it to returned slice
+	for _, key := range keys {
+		population, err := redis.Int(conn.Do("HGET", key, "population"))
+		if err != nil {
+			return cities, err
+		}
+		if population >= minVal && population <= maxVal {
+			city, err := redis.String(conn.Do("HGET", key, "name"))
+			if err != nil {
+				return cities, err
+			}
+			cities = append(cities, city)
+		}
+	}
+	return cities, nil
+}
+
+// GetByFoundation - returns from Redis a list of names of all cities with the specified foundation range
+func GetByFoundation(conn redis.Conn, minVal, maxVal int) ([]string, error) {
+	var cities []string
+
+	// Get a list of keys from Redis
+	keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return cities, err
+	}
+
+	// For each key, check if the foundation is in the specified range.
+	// If the foundation is in the range, get the city name & add it to returned slice
+	for _, key := range keys {
+		foundation, err := redis.Int(conn.Do("HGET", key, "foundation"))
+		if err != nil {
+			return cities, err
+		}
+		if foundation >= minVal && foundation <= maxVal {
+			city, err := redis.String(conn.Do("HGET", key, "name"))
+			if err != nil {
+				return cities, err
+			}
+			cities = append(cities, city)
+		}
+	}
+	return cities, nil
+}
+
+// UpdatePopulation - sets new population value for the city with specified id
+func UpdatePopulation(conn redis.Conn, id string, population int) error {
+	_, err := conn.Do(
+		"HSET",
+		id,
+		"population",
+		population,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteCity(conn redis.Conn, id string) error {
+	_, err := conn.Do("DEL", id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// WriteInfo - writes changes to the csv-file before service stop
+func WriteInfo(conn redis.Conn, file *os.File) error {
 	mutex := &sync.Mutex{}
 	writer := csv.NewWriter(file)
 
+	keys, err := redis.Strings(conn.Do("KEYS", "*"))
+	if err != nil {
+		return err
+	}
+
 	var cities [][]string
-	for _, city := range c {
-		var row []string
-		row = append(row, fmt.Sprintf("%v", city.ID))
-		row = append(row, city.Name)
-		row = append(row, city.Region)
-		row = append(row, city.District)
-		row = append(row, fmt.Sprintf("%v", city.Population))
-		row = append(row, fmt.Sprintf("%v", city.Foundation))
-		cities = append(cities, row)
+	for _, key := range keys {
+		city, err := redis.Strings(conn.Do("HVALS", key))
+		if err != nil {
+			return err
+		}
+		cities = append(cities, city)
 	}
 
 	mutex.Lock()
-	_, err := file.Seek(0, io.SeekStart)
+	_, err = file.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
