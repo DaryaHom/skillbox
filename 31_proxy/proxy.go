@@ -24,7 +24,7 @@ func main() {
 	log.Fatalln(http.ListenAndServe(proxyAddr, nil))
 }
 
-//handlePut - sends put-request to the instance
+//handle - sends request to the instances
 func handle(w http.ResponseWriter, r *http.Request) {
 	host := fmt.Sprintf("%s%v", chooseInstanceHost(), r.URL)
 	log.Println(host)
