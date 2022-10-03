@@ -3,7 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"interim_attestation/internal/city"
+	"interim_attestation/internal/db"
 	"interim_attestation/internal/req"
 	"math"
 	"net/http"
@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/gomodule/redigo/redis"
 )
 
 // Get - a hello function
@@ -26,10 +25,10 @@ func Get() http.HandlerFunc {
 }
 
 // GetCity - returns information about the city by its id
-func GetCity(conn redis.Conn) http.HandlerFunc {
+func GetCity(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		res, err := city.GetInfo(conn, id)
+		res, err := redisDB.GetInfo(id)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
@@ -40,7 +39,7 @@ func GetCity(conn redis.Conn) http.HandlerFunc {
 }
 
 //CreateCity - creates new city in storage & fill it with request info
-func CreateCity(conn redis.Conn) http.HandlerFunc {
+func CreateCity(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		request := map[string]interface{}{}
@@ -69,7 +68,7 @@ func CreateCity(conn redis.Conn) http.HandlerFunc {
 		}
 
 		// Create new structure with received values
-		err = city.CreateCity(conn, id, name, region, district, population, foundation)
+		err = redisDB.CreateCity(id, name, region, district, population, foundation)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
@@ -80,7 +79,7 @@ func CreateCity(conn redis.Conn) http.HandlerFunc {
 }
 
 //UpdatePopulation - updates city population in the database
-func UpdatePopulation(conn redis.Conn) http.HandlerFunc {
+func UpdatePopulation(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		val := chi.URLParam(r, "id")
 		if val != "" {
@@ -101,7 +100,7 @@ func UpdatePopulation(conn redis.Conn) http.HandlerFunc {
 			}
 
 			// Update the field 'population' with new value
-			err = city.UpdatePopulation(conn, id, population)
+			err = redisDB.UpdatePopulation(id, population)
 			if err != nil {
 				req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 				return
@@ -115,10 +114,10 @@ func UpdatePopulation(conn redis.Conn) http.HandlerFunc {
 }
 
 // GetByRegion - returns a list of all cities in the region
-func GetByRegion(conn redis.Conn) http.HandlerFunc {
+func GetByRegion(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		regionName := chi.URLParam(r, "name")
-		cities, err := city.GetByRegion(conn, regionName)
+		cities, err := redisDB.GetByRegion(regionName)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
@@ -129,10 +128,10 @@ func GetByRegion(conn redis.Conn) http.HandlerFunc {
 }
 
 // GetByDistrict - returns a list of all cities in the district
-func GetByDistrict(conn redis.Conn) http.HandlerFunc {
+func GetByDistrict(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		districtName := chi.URLParam(r, "name")
-		cities, err := city.GetByDistrict(conn, districtName)
+		cities, err := redisDB.GetByDistrict(districtName)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
@@ -143,7 +142,7 @@ func GetByDistrict(conn redis.Conn) http.HandlerFunc {
 }
 
 // GetByPopulation - returns a list of all cities with the specified population range
-func GetByPopulation(conn redis.Conn) http.HandlerFunc {
+func GetByPopulation(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := strings.Split(chi.URLParam(r, "range"), "-")
 
@@ -168,7 +167,7 @@ func GetByPopulation(conn redis.Conn) http.HandlerFunc {
 			}
 		}
 
-		cities, err := city.GetByPopulation(conn, minVal, maxVal)
+		cities, err := redisDB.GetByPopulation(minVal, maxVal)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
@@ -179,7 +178,7 @@ func GetByPopulation(conn redis.Conn) http.HandlerFunc {
 }
 
 // GetByFoundation - returns a list of all cities with the specified foundation range
-func GetByFoundation(conn redis.Conn) http.HandlerFunc {
+func GetByFoundation(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := strings.Split(chi.URLParam(r, "range"), "-")
 
@@ -204,7 +203,7 @@ func GetByFoundation(conn redis.Conn) http.HandlerFunc {
 			}
 		}
 
-		cities, err := city.GetByFoundation(conn, minVal, maxVal)
+		cities, err := redisDB.GetByFoundation(minVal, maxVal)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return
@@ -215,7 +214,7 @@ func GetByFoundation(conn redis.Conn) http.HandlerFunc {
 }
 
 // DeleteCity - removes city with the specified id from Redis
-func DeleteCity(conn redis.Conn) http.HandlerFunc {
+func DeleteCity(redisDB *db.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		request := map[string]string{}
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -226,7 +225,7 @@ func DeleteCity(conn redis.Conn) http.HandlerFunc {
 
 		id := request["target_id"]
 
-		err := city.DeleteCity(conn, id)
+		err := redisDB.DeleteCity(id)
 		if err != nil {
 			req.WriteBadRequest(w, []byte(fmt.Sprintf("%v", err)))
 			return

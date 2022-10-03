@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/csv"
 	"flag"
-	"interim_attestation/internal/city"
-	"interim_attestation/internal/handler"
+	"interim_attestation/internal/db"
+	"interim_attestation/internal/service"
 	"log"
 	"net/http"
 	"os"
@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -33,6 +31,7 @@ func main() {
 
 	// Redis connection
 	conn, err := redis.Dial("tcp", *addr)
+	redisDB := &db.DB{Conn: conn}
 	defer func() {
 		err = conn.Close()
 		if err != nil {
@@ -49,13 +48,13 @@ func main() {
 
 	// Read data from cvs-file to Redis
 	reader := csv.NewReader(file)
-	err = city.ReadInfo(conn, reader)
+	err = redisDB.ReadInfo(reader)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	// The HTTP Server
-	server := &http.Server{Addr: *port, Handler: service(conn)}
+	server := &http.Server{Addr: *port, Handler: service.Service(redisDB)}
 
 	// Server run context
 	ctx, cancelCtx := context.WithCancel(context.Background())
@@ -71,7 +70,7 @@ func main() {
 		log.Println("Interrupt signal received")
 
 		// Write data from Redis back to cvs-file
-		WriteChanges(conn, file)
+		WriteChanges(redisDB, file)
 
 		go func() {
 			<-shutdownCtx.Done()
@@ -101,47 +100,6 @@ func main() {
 	<-ctx.Done()
 }
 
-func service(conn redis.Conn) http.Handler {
-	log.Println("Starting server")
-	r := chi.NewRouter()
-
-	r.Use(middleware.RequestID)
-	r.Use(middleware.Logger)
-
-	r.Get("/", handler.Get())
-
-	r.Route("/city", func(r chi.Router) {
-		r.Get("/{id}", handler.GetCity(conn))
-	})
-
-	r.Route("/region", func(r chi.Router) {
-		r.Get("/{name}", handler.GetByRegion(conn))
-	})
-
-	r.Route("/district", func(r chi.Router) {
-		r.Get("/{name}", handler.GetByDistrict(conn))
-	})
-
-	//the range parameter must contain 2 numbers separated by "-", for example "/100-3000"
-	r.Route("/population", func(r chi.Router) {
-		r.Get("/{range}", handler.GetByPopulation(conn))
-	})
-
-	//the range parameter must contain 2 numbers separated by "-", for example "/1480-1918"
-	r.Route("/foundation", func(r chi.Router) {
-		r.Get("/{range}", handler.GetByFoundation(conn))
-	})
-
-	r.Post("/create", handler.CreateCity(conn))
-	r.Route("/update", func(r chi.Router) {
-		r.Put("/{id}", handler.UpdatePopulation(conn))
-	})
-
-	r.Delete("/", handler.DeleteCity(conn))
-
-	return r
-}
-
 func CloseFile(file *os.File) {
 	log.Println("File closing")
 	err := file.Close()
@@ -150,9 +108,9 @@ func CloseFile(file *os.File) {
 	}
 }
 
-func WriteChanges(conn redis.Conn, file *os.File) {
+func WriteChanges(redisDB *db.DB, file *os.File) {
 	log.Println("Writing changes to the file")
-	err := city.WriteInfo(conn, file)
+	err := redisDB.WriteInfo(file)
 	if err != nil {
 		log.Fatalln(err)
 	}
