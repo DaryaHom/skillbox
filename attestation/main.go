@@ -99,6 +99,7 @@ func handleData(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// runSimulator - starts generating service data
 func runSimulator() error {
 	cmd := exec.Command("./build/simulator.exe")
 	var buf bytes.Buffer
