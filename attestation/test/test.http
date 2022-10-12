@@ -1,0 +1,9 @@
+GET http://localhost:8585
+Accept: application/json
+
+###
+
+GET http://localhost:8585/struct
+Accept: application/json
+
+###
