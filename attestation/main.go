@@ -85,7 +85,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", "ok")
 }
 
-// handleData - returns data from all services
+// handleData - returns structured data from all services
 func handleData(w http.ResponseWriter, r *http.Request) {
 	resultT := str.GetResultData(alphaCodes, host, simulatorAddr)
 
