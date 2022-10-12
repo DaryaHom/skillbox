@@ -32,7 +32,7 @@ func init() {
 	// Get alpha-2 country codes data from cvs file
 	alphaCodes = make(map[string]string)
 
-	file, err := os.OpenFile("./assets/ISO3166-1alpha-2.csv", os.O_RDONLY, 0644)
+	file, err := os.OpenFile("assets/ISO3166-1alpha-2.csv", os.O_RDONLY, 0644)
 	if err != nil {
 		log.Fatalln(err)
 	}

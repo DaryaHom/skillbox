@@ -74,7 +74,7 @@ func GetStatus(alphaCodes map[string]string) ([]EmailData, error) {
 	store := make([]EmailData, 0)
 
 	// Read data from file
-	data, err := ioutil.ReadFile("../attestation/assets/email.data")
+	data, err := ioutil.ReadFile("./assets/email.data")
 	if err != nil {
 		return store, err
 	}

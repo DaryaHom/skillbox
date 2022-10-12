@@ -113,7 +113,7 @@ func GetStatus(alphaCodes map[string]string) ([]VoiceCallData, error) {
 
 	store := make([]VoiceCallData, 0)
 
-	data, err := ioutil.ReadFile("../attestation/pkg/simulator/skillbox-diploma/voice.data")
+	data, err := ioutil.ReadFile("./assets/voice.data")
 	if err != nil {
 		return store, err
 	}
