@@ -65,7 +65,7 @@ func GetData(alphaCodes map[string]string) ([]SMSData, error) {
 
 	store := make([]SMSData, 0)
 
-	data, err := ioutil.ReadFile("../attestation/assets/sms.data")
+	data, err := ioutil.ReadFile("./assets/sms.data")
 	if err != nil {
 		return store, err
 	}

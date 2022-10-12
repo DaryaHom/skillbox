@@ -57,7 +57,7 @@ func GetStatus() (BillingData, error) {
 	fmt.Println("Billing Status:")
 
 	var bill BillingData
-	data, err := ioutil.ReadFile("../attestation/assets/billing.data")
+	data, err := ioutil.ReadFile("./assets/billing.data")
 	if err != nil {
 		return bill, err
 	}
