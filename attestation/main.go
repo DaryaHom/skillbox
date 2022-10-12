@@ -65,7 +65,6 @@ func init() {
 }
 
 func main() {
-
 	// A new router
 	r := mux.NewRouter()
 
