@@ -11,6 +11,11 @@ import (
 	"fmt"
 )
 
+var (
+	status   = true
+	resError = ""
+)
+
 type ResultT struct {
 	Status bool       `json:"status"` // true if all data collection steps were successful, false in all other cases
 	Data   ResultSetT `json:"data"`   // filled if all data collection steps were successful, nil in all other cases
@@ -19,6 +24,7 @@ type ResultT struct {
 
 func NewResultT() *ResultT {
 	return &ResultT{}
+
 }
 
 type ResultSetT struct {
@@ -39,20 +45,10 @@ func NewResultSetT() *ResultSetT {
 func GetResultData(alphaCodes map[string]string, host, simulatorAddr string) *ResultT {
 	res := NewResultT()
 	res.Data = *NewResultSetT()
-	status := true
-	resError := ""
 
 	// Get structured sms-data
 	smsSortedByProvider, smsSortedByCountry, err := sms.GetStructuredData(alphaCodes)
-
-	// Check for sms-data collection errors
-	if smsSortedByProvider == nil || smsSortedByCountry == nil ||
-		len(smsSortedByProvider) == 0 || len(smsSortedByCountry) == 0 {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkSMSData(smsSortedByProvider, smsSortedByCountry, err)
 
 	// Add sms-data to the result-struct
 	res.Data.SMS = append(res.Data.SMS, smsSortedByProvider)
@@ -60,15 +56,7 @@ func GetResultData(alphaCodes map[string]string, host, simulatorAddr string) *Re
 
 	// Get structured mms-data
 	mmsSortedByProvider, mmsSortedByCountry, err := mms.GetStructuredData(alphaCodes, host, simulatorAddr)
-
-	// Check for sms-data collection errors
-	if mmsSortedByProvider == nil || mmsSortedByCountry == nil ||
-		len(mmsSortedByProvider) == 0 || len(mmsSortedByCountry) == 0 {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkMMSData(mmsSortedByProvider, mmsSortedByCountry, err)
 
 	// Add mms-data to the result-struct
 	res.Data.MMS = append(res.Data.MMS, mmsSortedByProvider)
@@ -76,56 +64,28 @@ func GetResultData(alphaCodes map[string]string, host, simulatorAddr string) *Re
 
 	// Get structured voice-call-data
 	vcData, err := vc.GetStatus(alphaCodes)
-
-	// Check for voice-call-data collection errors
-	if vcData == nil || len(vcData) == 0 {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkVcData(vcData, err)
 
 	// Add voice-call-data to the result-struct
 	res.Data.VoiceCall = vcData
 
 	// Get structured email-data
 	emailData, err := mail.GetStructuredData(alphaCodes)
-
-	// Check for email-data collection errors
-	if emailData == nil || len(emailData) == 0 {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkEmailData(emailData, err)
 
 	// Add email-data to the result-struct
 	res.Data.Email = emailData
 
 	// Get structured billing-data
 	billData, err := bill.GetStatus()
-
-	// Check for billing-data collection errors
-	if billData == *bill.NewBillingData() {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkBillData(billData, err)
 
 	// Add billing-data to the result-struct
 	res.Data.Billing = billData
 
 	// Get structured support-data
 	load, waitingTime, err := supp.GetStructuredData(host, simulatorAddr)
-
-	// Check for support-data collection errors
-	if load == -1 || waitingTime == -1 {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkSuppData(load, waitingTime, err)
 
 	// Add support-data to the result-struct
 	res.Data.Support = append(res.Data.Support, load)
@@ -133,17 +93,85 @@ func GetResultData(alphaCodes map[string]string, host, simulatorAddr string) *Re
 
 	// Get structured accident-data
 	incData, err := inc.GetStructuredData(host, simulatorAddr)
-	if incData == nil || len(incData) == 0 {
-		status = false
-	}
-	if err != nil {
-		resError = fmt.Sprintf("%s\n%s", resError, err)
-	}
+	checkIncData(incData, err)
 
+	// Add accident data to the result-struct
 	res.Data.Incidents = incData
 
 	res.Status = status
 	res.Error = resError
 
 	return res
+}
+
+// checkSMSData - checks for sms-data collection errors
+func checkSMSData(smsSortedByProvider, smsSortedByCountry []sms.SMSData, err error) {
+	if smsSortedByProvider == nil || smsSortedByCountry == nil ||
+		len(smsSortedByProvider) == 0 || len(smsSortedByCountry) == 0 {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
+}
+
+// checkMMSData - checks for sms-data collection errors
+func checkMMSData(mmsSortedByProvider, mmsSortedByCountry []mms.MMSData, err error) {
+	if mmsSortedByProvider == nil || mmsSortedByCountry == nil ||
+		len(mmsSortedByProvider) == 0 || len(mmsSortedByCountry) == 0 {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
+}
+
+// checkVcData - check for voice-call-data collection errors
+func checkVcData(vcData []vc.VoiceCallData, err error) {
+	if vcData == nil || len(vcData) == 0 {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
+}
+
+// Check for email-data collection errors
+func checkEmailData(emailData map[string][][]mail.EmailData, err error) {
+	if emailData == nil || len(emailData) == 0 {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
+}
+
+// Check for billing-data collection errors
+func checkBillData(billData bill.BillingData, err error) {
+	if billData == *bill.NewBillingData() {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
+}
+
+// Check for support-data collection errors
+func checkSuppData(load, waitingTime int, err error) {
+	if load == -1 || waitingTime == -1 {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
+}
+
+// Check for accident-data collection errors
+func checkIncData(incData []inc.IncidentData, err error) {
+	if incData == nil || len(incData) == 0 {
+		status = false
+	}
+	if err != nil {
+		resError = fmt.Sprintf("%s\n%s", resError, err)
+	}
 }

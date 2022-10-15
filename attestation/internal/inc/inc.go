@@ -1,16 +1,14 @@
 package inc
 
 import (
-	"encoding/json"
+	"attestation/internal/data"
 	"fmt"
-	"io"
-	"net/http"
 	"sort"
 )
 
 type IncidentData struct {
 	Topic  string `json:"topic"`
-	Status string `json:"status"` // possible statuses active and closed
+	Status string `json:"status"` // possible statuses: active and closed
 }
 
 // GetData - gets accident data from simulator API
@@ -21,22 +19,9 @@ func GetData(host, simulatorAddr string) ([]IncidentData, error) {
 
 	var store []IncidentData
 
-	resp, err := http.Get(host + simulatorAddr + "/accendent")
+	err := data.GetFromAPI(host, simulatorAddr, "/accendent", &store)
 	if err != nil {
 		return store, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return store, err
-		}
-
-		err = json.Unmarshal(body, &store)
-		if err != nil {
-			return store, err
-		}
 	}
 
 	// Testing function

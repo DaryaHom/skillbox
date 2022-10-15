@@ -1,11 +1,9 @@
 package supp
 
 import (
-	"encoding/json"
+	"attestation/internal/data"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
 )
 
 type SupportData struct {
@@ -21,28 +19,16 @@ func GetData(host, simulatorAddr string) ([]SupportData, error) {
 
 	var store []SupportData
 
-	resp, err := http.Get(host + simulatorAddr + "/support")
+	err := data.GetFromAPI(host, simulatorAddr, "/support", &store)
 	if err != nil {
 		return store, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return store, err
-		}
-
-		err = json.Unmarshal(body, &store)
-		if err != nil {
-			return store, err
-		}
 	}
 
 	// Testing function
 	for _, d := range store {
 		fmt.Printf("%v\n", d)
 	}
+
 	return store, nil
 }
 

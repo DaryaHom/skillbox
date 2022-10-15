@@ -1,10 +1,8 @@
 package mms
 
 import (
-	"encoding/json"
+	"attestation/internal/data"
 	"fmt"
-	"io"
-	"net/http"
 	"sort"
 )
 
@@ -23,22 +21,11 @@ func GetData(host, simulatorAddr string) ([]MMSData, error) {
 
 	var store []MMSData
 
-	resp, err := http.Get(host + simulatorAddr + "/mms")
+	err := data.GetFromAPI(host, simulatorAddr, "/mms", &store)
 	if err != nil {
 		return store, err
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 200 {
-		body, err := io.ReadAll(resp.Body)
-
-		if err != nil {
-			return store, err
-		}
-
-		err = json.Unmarshal(body, &store)
-	}
 	return store, nil
 }
 
