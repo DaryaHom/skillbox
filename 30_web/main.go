@@ -9,12 +9,21 @@ import (
 	"github.com/go-chi/chi"
 )
 
+var (
+	port = ":8080"
+)
+
 func main() {
-	port := ":8080"
+	r := NewHTTPRouter()
+
+	log.Println("Serving on" + port)
+	log.Fatal(http.ListenAndServe(port, r))
+}
+
+// NewHTTPRouter - returns new chi-router
+func NewHTTPRouter() *chi.Mux {
 	r := chi.NewRouter()
 	s := storage.NewStorage()
-
-	log.Println("Starting server")
 
 	r.Get("/getAll", handler.GetAll(s))
 	r.Post("/create", handler.CreateUser(s))
@@ -30,6 +39,5 @@ func main() {
 		r.Put("/{user_id}", handler.UpdateAge(s))
 	})
 
-	log.Println("Serving on" + port)
-	log.Fatal(http.ListenAndServe(port, r))
+	return r
 }

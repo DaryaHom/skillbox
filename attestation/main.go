@@ -6,13 +6,15 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/jszwec/csvutil"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+
+	"github.com/gorilla/mux"
+
+	"github.com/jszwec/csvutil"
 )
 
 type alphaCode struct {
@@ -28,7 +30,6 @@ var (
 )
 
 func init() {
-
 	// Get alpha-2 country codes data from cvs file
 	alphaCodes = make(map[string]string)
 
@@ -65,7 +66,27 @@ func init() {
 }
 
 func main() {
-	// A new router
+	r := NewHTTPRouter()
+
+	// Server
+	log.Println("Listening on", addr)
+	log.Fatalln(http.ListenAndServe(addr, r))
+}
+
+// runSimulator - starts generating service data
+func runSimulator() error {
+	cmd := exec.Command("./build/simulator.exe")
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func NewHTTPRouter() *mux.Router {
+	// A new server
 	r := mux.NewRouter()
 
 	// Testing connection handler
@@ -74,9 +95,7 @@ func main() {
 	// A handler to get all service data
 	r.HandleFunc("/struct", handleData)
 
-	// Server
-	log.Println("Listening on", addr)
-	log.Fatalln(http.ListenAndServe(addr, r))
+	return r
 }
 
 // handleConnection - checks connection
@@ -97,16 +116,4 @@ func handleData(w http.ResponseWriter, r *http.Request) {
 	if _, err := w.Write(res); err != nil {
 		log.Fatalln(err)
 	}
-}
-
-// runSimulator - starts generating service data
-func runSimulator() error {
-	cmd := exec.Command("./build/simulator.exe")
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	err := cmd.Start()
-	if err != nil {
-		return err
-	}
-	return nil
 }
